@@ -72,6 +72,11 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
         }
     }
 
+    function burn(uint256 tokenId) public {
+        require(ownerOf(tokenId) == msg.sender, "You're not the owner");
+        super._burn(tokenId);
+    }
+
     function mintNFT(address to, uint256 tokenId) internal {
         internalMint(to, tokenId);
         _mintCount.increment();
