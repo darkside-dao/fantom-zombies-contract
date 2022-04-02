@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "./IX32PE.sol";
 
 contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Pausable, Ownable {
     using Counters for Counters.Counter;
@@ -37,12 +38,42 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
 
     address payable public payableAddress;
 
+    address private _virusContract;
+
     string private _defaultBaseURI;
 
     bool public whitelistSale;
 
     constructor() ERC721("Fantom Zombies", "ZOMBIES") {
         closedSales();
+    }
+
+    function infect(uint256 amount) external {
+        uint256 balance = IX32PE(_virusContract).balanceOf(msg.sender);
+        require(amount <= balance && amount > 0, "Amount higher than your balance");
+        uint256 tokenId;
+        if (balance > 0) {
+            for (uint256 i = 0; i < amount; i++) {
+                tokenId = IX32PE(_virusContract).tokenOfOwnerByIndex(msg.sender, i);
+                IX32PE(_virusContract).burnForAddress(tokenId);
+            }
+
+            giveaway(msg.sender, amount);
+        }
+    }
+
+    function infectForAddress(address to, uint256 amount) external onlyOwner {
+        uint256 balance = IX32PE(_virusContract).balanceOf(to);
+        require(amount <= balance && amount > 0, "Amount higher than balance");
+        uint256 tokenId;
+        if (balance > 0) {
+            for (uint256 i = 0; i < amount; i++) {
+                tokenId = IX32PE(_virusContract).tokenOfOwnerByIndex(to, i);
+                IX32PE(_virusContract).burnForAddress(tokenId);
+            }
+
+            giveaway(to, amount);
+        }
     }
 
     function mint(uint256 quantity) external payable whenNotPaused {
@@ -62,7 +93,7 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
         }
     }
 
-    function giveaway(address to, uint256 quantity) external payable onlyOwner {
+    function giveaway(address to, uint256 quantity) public payable onlyOwner {
         uint256 amountGiveaway = _giveawayCount.current();
         require(amountGiveaway < maxGiveaway && (amountGiveaway + quantity) < maxGiveaway, "Mint limit exceeded!");
         
@@ -74,7 +105,7 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
 
     function burn(uint256 tokenId) public {
         require(ownerOf(tokenId) == msg.sender, "You're not the owner");
-        super._burn(tokenId);
+        _burn(tokenId);
     }
 
     function mintNFT(address to, uint256 tokenId) internal {
