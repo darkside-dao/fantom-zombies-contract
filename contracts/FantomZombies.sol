@@ -46,34 +46,23 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
 
     constructor() ERC721("Fantom Zombies", "ZOMBIES") {
         closedSales();
+        _tokenIds.increment();
     }
 
-    function infect(uint256 amount) external {
+    function infect() external {
         uint256 balance = IX32PE(_virusContract).balanceOf(msg.sender);
-        require(amount <= balance && amount > 0, "Amount higher than your balance");
-        uint256 tokenId;
-        if (balance > 0) {
-            for (uint256 i = 0; i < amount; i++) {
-                tokenId = IX32PE(_virusContract).tokenOfOwnerByIndex(msg.sender, i);
-                IX32PE(_virusContract).burnForAddress(tokenId);
-            }
-
-            giveaway(msg.sender, amount);
-        }
+        require(balance > 0, "Amount higher than your balance");
+        uint256 tokenId = IX32PE(_virusContract).tokenOfOwnerByIndex(msg.sender, 0);
+        IX32PE(_virusContract).burnForAddress(tokenId);
+        giveaway(msg.sender, 1);
     }
 
-    function infectForAddress(address to, uint256 amount) external onlyOwner {
+    function infectForAddress(address to) external onlyOwner {
         uint256 balance = IX32PE(_virusContract).balanceOf(to);
-        require(amount <= balance && amount > 0, "Amount higher than balance");
-        uint256 tokenId;
-        if (balance > 0) {
-            for (uint256 i = 0; i < amount; i++) {
-                tokenId = IX32PE(_virusContract).tokenOfOwnerByIndex(to, i);
-                IX32PE(_virusContract).burnForAddress(tokenId);
-            }
-
-            giveaway(to, amount);
-        }
+        require(balance > 0, "Amount higher than balance");
+        uint256 tokenId = IX32PE(_virusContract).tokenOfOwnerByIndex(to, 1);
+        IX32PE(_virusContract).burnForAddress(tokenId);
+        giveaway(to, 1);
     }
 
     function mint(uint256 quantity) external payable whenNotPaused {
@@ -142,6 +131,10 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
 
     function closedSales() public onlyOwner {
         whitelistSale = true;
+    }
+
+    function setVirusAddress(address contractAddress) external onlyOwner {
+        _virusContract = contractAddress;
     }
 
     function setBaseURI(string calldata newBaseURI) public onlyOwner {
