@@ -55,6 +55,10 @@ contract IX32PEVirus is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Pausab
         _tokenIds.increment();
     }
 
+    function setBaseURI(string calldata newURI) external onlyOwner {
+        defaultURI = newURI;
+    }
+
     function _baseURI() internal view override returns (string memory) {
         return defaultURI;
     }

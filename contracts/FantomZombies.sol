@@ -30,6 +30,8 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
 
     uint256 public mintPrice = 10 ether;
 
+    uint256 public whitelistPrice = 8 ether;
+
     uint32 private _whitelistMintLimit = 100;
 
     mapping(address => bool) private _whitelist;
@@ -49,9 +51,10 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
         _tokenIds.increment();
     }
 
-    function infect() external {
+    function infect() external payable {
         uint256 balance = IX32PE(_virusContract).balanceOf(msg.sender);
         require(balance > 0, "Amount higher than your balance");
+        require(msg.value >= whitelistPrice, "Invalid price!");
         uint256 tokenId = IX32PE(_virusContract).tokenOfOwnerByIndex(msg.sender, 0);
         IX32PE(_virusContract).burnForAddress(tokenId);
         giveaway(msg.sender, 1);
@@ -69,7 +72,7 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
         uint256 amountMint = _mintCount.current();
         require(amountMint < maxMintable && ((amountMint + quantity) < maxMintable), "Mint limit exceeded!");
 
-        if ((whitelistSale && _whitelist[msg.sender]) || !whitelistSale) {
+        if (!whitelistSale) {
             uint256 totalPrice = mintPrice * quantity;
             require(msg.value >= totalPrice, "Invalid amount!");
 
