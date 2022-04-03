@@ -98,7 +98,7 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
         }
     }
 
-    function isWhitelisted(address whitelistedAddress) public view onlyOwner returns (bool) {
+    function isWhitelisted(address whitelistedAddress) public view returns (bool) {
         return IX32PE(_virusContract).balanceOf(whitelistedAddress) > 0;
     }
 
