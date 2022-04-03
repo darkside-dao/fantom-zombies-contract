@@ -34,10 +34,6 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
 
     uint32 private _whitelistMintLimit = 100;
 
-    mapping(address => bool) private _whitelist;
-
-    address[100] private _whitelisted;
-
     address payable public payableAddress;
 
     address private _virusContract;
@@ -46,12 +42,20 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
 
     bool public whitelistSale;
 
+    bool public salesAvailable;
+
     constructor() ERC721("Fantom Zombies", "ZOMBIES") {
-        closedSales();
+        salesAvailable = false;
+        whitelistSale = false;
         _tokenIds.increment();
     }
 
-    function infect() external payable {
+    modifier whenWhitelistOnline {
+        require(whitelistSale, "Whitelist sale isn't on!");
+        _;
+    }
+
+    function infect() external payable whenWhitelistOnline {
         uint256 balance = IX32PE(_virusContract).balanceOf(msg.sender);
         require(balance > 0, "Amount higher than your balance");
         require(msg.value >= whitelistPrice, "Invalid price!");
@@ -71,21 +75,20 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
     function mint(uint256 quantity) external payable whenNotPaused {
         uint256 amountMint = _mintCount.current();
         require(amountMint < maxMintable && ((amountMint + quantity) < maxMintable), "Mint limit exceeded!");
+        require(salesAvailable, "Sales isn't public yet!");
+        
+        uint256 totalPrice = mintPrice * quantity;
+        require(msg.value >= totalPrice, "Invalid amount!");
 
-        if (!whitelistSale) {
-            uint256 totalPrice = mintPrice * quantity;
-            require(msg.value >= totalPrice, "Invalid amount!");
+        payableAddress.transfer(totalPrice);
 
-            payableAddress.transfer(totalPrice);
-
-            uint256 tokenId = _tokenIds.current();
-            for (uint256 i = 0; i < quantity; i++) {
-                mintNFT(msg.sender, tokenId + i);
-            }
+        uint256 tokenId = _tokenIds.current();
+        for (uint256 i = 0; i < quantity; i++) {
+            mintNFT(msg.sender, tokenId + i);
         }
     }
 
-    function giveaway(address to, uint256 quantity) public payable onlyOwner {
+    function giveaway(address to, uint256 quantity) public onlyOwner {
         uint256 amountGiveaway = _giveawayCount.current();
         require(amountGiveaway < maxGiveaway && (amountGiveaway + quantity) < maxGiveaway, "Mint limit exceeded!");
         
@@ -116,24 +119,12 @@ contract FantomZombies is ERC721, ERC721Enumerable, ERC721URIStorage, ERC721Paus
         _tokenIds.increment();
     }
 
-    function whitelist(address target) public onlyOwner {
-        require(target != address(0), "Cannot whitelist zero address");
-        _whitelisted[_whitelistCount.current()] = target;
-        _whitelistCount.increment();
-        _whitelist[target] = true;
+    function toggleSalesAvailable() public onlyOwner {
+        salesAvailable = !salesAvailable;
     }
 
-    function isWhitelisted(address target) public view returns (bool) {
-        require(target != address(0), "Cannot check zero address");
-        return _whitelist[target];
-    }
-
-    function openSales() public onlyOwner {
-        whitelistSale = false;
-    }
-
-    function closedSales() public onlyOwner {
-        whitelistSale = true;
+    function toggleWhitelistSale() public onlyOwner {
+        whitelistSale = !whitelistSale;
     }
 
     function setVirusAddress(address contractAddress) external onlyOwner {
